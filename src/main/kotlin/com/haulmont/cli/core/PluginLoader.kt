@@ -51,10 +51,10 @@ internal class PluginLoader {
                         .filter { Files.isDirectory(it) }
                         .forEach { loadPluginsByDir(it, mode) }
             }
-
-            log.log(Level.INFO, "InitPluginEvent")
-            bus.post(InitPluginEvent(commandsRegistry, mode))
         }
+
+        log.log(Level.INFO, "InitPluginEvent")
+        bus.post(InitPluginEvent(commandsRegistry, mode))
     }
 
     private fun loadPluginsByDir(pluginsDir: Path, mode: CliMode) {
@@ -95,7 +95,7 @@ internal class PluginLoader {
     }
 
     fun loadMainPlugin(commandsRegistry: CommandsRegistry, mode: CliMode) {
-        log.log(Level.INFO, "Start loading plugins")
+        log.log(Level.INFO, "Start loading main plugins")
 
         val pluginsIterator = ServiceLoader.load(MainCliPlugin::class.java).iterator()
 
@@ -103,9 +103,6 @@ internal class PluginLoader {
             val plugin = pluginsIterator.next()
             loadPlugin(plugin, mode)
         }
-
-        log.log(Level.INFO, "InitMainPluginEvent")
-        bus.post(InitPluginEvent(commandsRegistry, mode))
     }
 
     private fun loadPlugin(plugin: CliPlugin, mode: CliMode) {
