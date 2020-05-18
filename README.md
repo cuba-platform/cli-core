@@ -1,4 +1,4 @@
-<h1 align="center"> CLI Core
+<h1> CLI Core
 </h1>
 
 <p>
@@ -8,6 +8,6 @@
 <p>
 The CLI Core makes it easy to create a command line application that already works, right out of the box.
 </p>
-<h3 align="center">
+<h3>
 <img src="https://github.com/cuba-platform/cuba-cli/blob/master/img/cuba-cli-shell.gif" align="center">
 </h3>
