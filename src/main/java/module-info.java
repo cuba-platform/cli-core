@@ -40,6 +40,7 @@ module com.haulmont.cli.core {
     requires java.xml;
 
     uses com.haulmont.cli.core.CliPlugin;
+    uses com.haulmont.cli.core.MainCliPlugin;
 
     opens com.haulmont.cli.core.commands;
     opens com.haulmont.cli.core;

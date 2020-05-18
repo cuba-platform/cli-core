@@ -24,7 +24,6 @@ import java.io.PrintWriter
 import java.lang.module.ModuleFinder
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -39,22 +38,23 @@ internal class PluginLoader {
 
     private val bus: EventBus by kodein.instance<EventBus>()
 
-    internal fun loadPlugins(commandsRegistry: CommandsRegistry, mode: CliMode) {
+    fun loadPlugins(commandsRegistry: CommandsRegistry, mode: CliMode) {
         log.log(Level.INFO, "Creating plugins module layer")
 
-        val pluginsDir = Paths.get(System.getProperty("user.home"), ".haulmont", "cli", "plugins")
+        context.mainPlugin()?.pluginsDir?.let { pluginsDir ->
 
-        loadPluginsByDir(pluginsDir, mode)
+            loadPluginsByDir(pluginsDir, mode)
 
-        if (Files.exists(pluginsDir)) {
-            Files.walk(pluginsDir, 1)
-                    .filter { it != pluginsDir }
-                    .filter { Files.isDirectory(it) }
-                    .forEach { loadPluginsByDir(it, mode) }
+            if (Files.exists(pluginsDir)) {
+                Files.walk(pluginsDir, 1)
+                        .filter { it != pluginsDir }
+                        .filter { Files.isDirectory(it) }
+                        .forEach { loadPluginsByDir(it, mode) }
+            }
+
+            log.log(Level.INFO, "InitPluginEvent")
+            bus.post(InitPluginEvent(commandsRegistry, mode))
         }
-
-        log.log(Level.INFO, "InitPluginEvent")
-        bus.post(InitPluginEvent(commandsRegistry, mode))
     }
 
     private fun loadPluginsByDir(pluginsDir: Path, mode: CliMode) {
@@ -89,26 +89,43 @@ internal class PluginLoader {
         val pluginsIterator = ServiceLoader.load(pluginsLayer, CliPlugin::class.java).iterator()
 
         while (pluginsIterator.hasNext()) {
-            try {
-                val plugin = pluginsIterator.next()
+            val plugin = pluginsIterator.next()
+            loadPlugin(plugin, mode)
+        }
+    }
 
-                if (plugin.javaClass in context.plugins.map { it.javaClass })
-                    continue
+    fun loadMainPlugin(commandsRegistry: CommandsRegistry, mode: CliMode) {
+        log.log(Level.INFO, "Start loading plugins")
 
-                val version = getPluginVersion(plugin)
-                if (version != API_VERSION) {
-                    writer.println("Plugin's ${plugin.javaClass.name} version ($version) doesn't correspond current CUBA CLI version ($API_VERSION)".bgRed())
-                    continue
-                }
-                context.registerPlugin(plugin)
-                if (context.mainPlugin != plugin && mode == CliMode.SHELL) {
-                    writer.println("Loaded plugin @|green ${plugin.javaClass.name}|@.")
-                }
-                bus.register(plugin)
-            } catch (e: ServiceConfigurationError) {
-                log.log(Level.SEVERE, e) { "Error loading plugin" }
-                writer.println(e.message)
+        val pluginsIterator = ServiceLoader.load(MainCliPlugin::class.java).iterator()
+
+        while (pluginsIterator.hasNext()) {
+            val plugin = pluginsIterator.next()
+            loadPlugin(plugin, mode)
+        }
+
+        log.log(Level.INFO, "InitMainPluginEvent")
+        bus.post(InitPluginEvent(commandsRegistry, mode))
+    }
+
+    private fun loadPlugin(plugin: CliPlugin, mode: CliMode) {
+        try {
+            if (plugin.javaClass in context.plugins.map { it.javaClass })
+                return
+
+            val version = getPluginVersion(plugin)
+            if (version != API_VERSION) {
+                writer.println("Plugin's ${plugin.javaClass.name} version ($version) doesn't correspond current CUBA CLI version ($API_VERSION)".bgRed())
+                return
             }
+            context.registerPlugin(plugin)
+            if (context.mainPlugin() != plugin && mode == CliMode.SHELL) {
+                writer.println("Loaded plugin @|green ${plugin.javaClass.name}|@.")
+            }
+            bus.register(plugin)
+        } catch (e: ServiceConfigurationError) {
+            log.log(Level.SEVERE, e) { "Error loading plugin" }
+            writer.println(e.message)
         }
     }
 

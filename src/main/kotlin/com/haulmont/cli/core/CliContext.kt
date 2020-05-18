@@ -35,7 +35,7 @@ class CliContext {
 
     internal val plugins: List<CliPlugin> = mutableListOf()
 
-    internal var mainPlugin: CliPlugin? = null
+    internal var mainPlugin: MainCliPlugin? = null
 
     /**
      * Retrieves model by [key].
@@ -57,23 +57,18 @@ class CliContext {
 
     fun mainPlugin() = mainPlugin
 
-    fun prompt() = readMainPluginAnnotation(mainPlugin)?.prompt ?: ">"
+    fun prompt() = mainPlugin?.prompt ?: ">"
 
     fun clearModels() = models.clear()
 
     fun registerPlugin(plugin: CliPlugin) {
         (plugins as MutableList).add(plugin)
-        readMainPluginAnnotation(plugin)?.let {
-            if (mainPlugin == null || readMainPluginAnnotation(mainPlugin!!)!!.priority < it.priority) {
+        if (plugin is MainCliPlugin) {
+            if (mainPlugin == null || plugin.priority > mainPlugin!!.priority) {
                 mainPlugin = plugin
             }
         }
     }
-
-    private fun readMainPluginAnnotation(plugin: CliPlugin?) =
-            plugin?.let {
-                it::class.java.annotations.find { it is MainPlugin } as? MainPlugin
-            }
 
     fun getResources(pluginClass: Class<out CliPlugin>): Resources {
         return plugins.filterIsInstance(pluginClass)

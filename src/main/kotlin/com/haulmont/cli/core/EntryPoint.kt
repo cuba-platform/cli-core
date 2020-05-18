@@ -94,6 +94,8 @@ fun main(args: Array<String>) {
 
     val commandsRegistry = CommandsRegistry()
 
+    PluginLoader().loadMainPlugin(commandsRegistry, mode)
+
     PluginLoader().loadPlugins(commandsRegistry, mode)
 
     val cli: Cli = when (mode) {
