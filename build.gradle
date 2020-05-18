@@ -42,7 +42,6 @@ def jansiVersion = "1.17"
 def guavaVersion = "26.0-jre"
 def jlineVersion = "3.6.2"
 def kodeinVersion = "5.0.0"
-def practicalxmlVersion = "1.1.0"
 def gsonVersion = "2.3.1"
 
 apply plugin: 'kotlin'

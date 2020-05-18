@@ -37,7 +37,6 @@ module com.haulmont.cli.core {
     requires kodein.di.core.jvm;
     requires kodein.di.generic.jvm;
 
-    requires practicalxml;
     requires java.xml;
 
     uses com.haulmont.cli.core.CliPlugin;
