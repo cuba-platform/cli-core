@@ -24,11 +24,12 @@ import java.io.PrintWriter
 import java.lang.module.ModuleFinder
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
 
-internal class PluginLoader {
+class PluginLoader {
 
     private val log: Logger = Logger.getLogger(PluginLoader::class.java.name)
 
@@ -38,59 +39,75 @@ internal class PluginLoader {
 
     private val bus: EventBus by kodein.instance<EventBus>()
 
+    fun systemPluginsPaths() = listOf(
+            Paths.get("").toAbsolutePath().resolve("plugins"),
+            Paths.get("").toAbsolutePath().parent.resolve("plugins")
+    )
+
     fun loadPlugins(commandsRegistry: CommandsRegistry, mode: CliMode) {
         log.log(Level.INFO, "Creating plugins module layer")
 
+        systemPluginsPaths().forEach {
+            loadPluginsRecursively(it, mode, true)
+        }
+
         context.mainPlugin()?.pluginsDir?.let { pluginsDir ->
-
-            loadPluginsByDir(pluginsDir, mode)
-
-            if (Files.exists(pluginsDir)) {
-                Files.walk(pluginsDir, 1)
-                        .filter { it != pluginsDir }
-                        .filter { Files.isDirectory(it) }
-                        .forEach { loadPluginsByDir(it, mode) }
-            }
+            loadPluginsRecursively(pluginsDir, mode, false)
         }
 
         log.log(Level.INFO, "InitPluginEvent")
         bus.post(InitPluginEvent(commandsRegistry, mode))
     }
 
-    private fun loadPluginsByDir(pluginsDir: Path, mode: CliMode) {
-
-        val pluginsLayer = try {
-            val bootLayer = ModuleLayer.boot()
-
-            val pluginModulesFinder = ModuleFinder.of(pluginsDir)
-            val pluginModules = pluginModulesFinder.findAll().map {
-                it.descriptor().name()
-            }
-
-            val configuration = bootLayer.configuration().resolve(pluginModulesFinder, ModuleFinder.of(), pluginModules)
-
-            ModuleLayer.defineModulesWithOneLoader(
-                    configuration,
-                    mutableListOf(bootLayer),
-                    ClassLoader.getSystemClassLoader()
-            ).layer()
-        } catch (e: Exception) {
-            log.log(Level.WARNING, "Error during loading module layer from directory $pluginsDir", e)
-            writer.println("Error during loading module layer from directory $pluginsDir".bgRed())
-            return
+    private fun loadPluginsRecursively(pluginsDir: Path, mode: CliMode, system: Boolean = false) {
+        walkDirectory(pluginsDir) {
+            loadPluginsByDir(it, mode, system)
         }
-
-        loadPlugins(pluginsLayer, mode)
     }
 
-    private fun loadPlugins(pluginsLayer: ModuleLayer, mode: CliMode) {
+    private fun walkDirectory(rootDir: Path, action: (dir: Path) -> Unit) {
+        if (Files.exists(rootDir)) {
+            action(rootDir)
+            Files.walk(rootDir, 1)
+                    .filter { it != rootDir }
+                    .filter { Files.isDirectory(it) }
+                    .forEach { action(it) }
+        }
+    }
+
+    private fun loadPluginsByDir(pluginsDir: Path, mode: CliMode, system: Boolean = false) {
+        createModuleLayer(pluginsDir)?.let { loadPlugins(it, mode, system) }
+    }
+
+    private fun createModuleLayer(pluginsDir: Path): ModuleLayer? = try {
+        val bootLayer = ModuleLayer.boot()
+
+        val pluginModulesFinder = ModuleFinder.of(pluginsDir)
+        val pluginModules = pluginModulesFinder.findAll().map {
+            it.descriptor().name()
+        }
+
+        val configuration = bootLayer.configuration().resolve(pluginModulesFinder, ModuleFinder.of(), pluginModules)
+
+        ModuleLayer.defineModulesWithOneLoader(
+                configuration,
+                mutableListOf(bootLayer),
+                ClassLoader.getSystemClassLoader()
+        ).layer()
+    } catch (e: Exception) {
+        log.log(Level.WARNING, "Error during loading module layer from directory $pluginsDir", e)
+        writer.println("Error during loading module layer from directory $pluginsDir".bgRed())
+        null
+    }
+
+    private fun loadPlugins(pluginsLayer: ModuleLayer, mode: CliMode, system: Boolean = false) {
         log.log(Level.INFO, "Start loading plugins")
 
         val pluginsIterator = ServiceLoader.load(pluginsLayer, CliPlugin::class.java).iterator()
 
         while (pluginsIterator.hasNext()) {
             val plugin = pluginsIterator.next()
-            loadPlugin(plugin, mode)
+            loadPlugin(plugin, mode, system)
         }
     }
 
@@ -101,11 +118,11 @@ internal class PluginLoader {
 
         while (pluginsIterator.hasNext()) {
             val plugin = pluginsIterator.next()
-            loadPlugin(plugin, mode)
+            loadPlugin(plugin, mode, true)
         }
     }
 
-    private fun loadPlugin(plugin: CliPlugin, mode: CliMode) {
+    private fun loadPlugin(plugin: CliPlugin, mode: CliMode, system: Boolean = false) {
         try {
             if (plugin.javaClass in context.plugins.map { it.javaClass })
                 return
@@ -116,7 +133,7 @@ internal class PluginLoader {
                 return
             }
             context.registerPlugin(plugin)
-            if (context.mainPlugin() != plugin && mode == CliMode.SHELL) {
+            if (context.mainPlugin() != plugin && mode == CliMode.SHELL && !system) {
                 writer.println("Loaded plugin @|green ${plugin.javaClass.name}|@.")
             }
             bus.register(plugin)
