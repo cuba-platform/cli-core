@@ -82,8 +82,7 @@ class ShellCli(private val commandsRegistry: CommandsRegistry) : Cli {
     private val lineReader: LineReader by kodein.instance(arg = createCommandsCompleter(commandsRegistry))
 
     override fun run() {
-        cliContext.mainPlugin()?.welcome()
-        writer.println(messages["interactiveModeHint"])
+
         while (true) {
             CommonParameters.reset()
             commandParser.reset()

@@ -23,6 +23,7 @@ import com.haulmont.cli.core.commands.LaunchOptions
 import com.haulmont.cli.core.di.terminalModule
 import com.haulmont.cli.core.event.DestroyPluginEvent
 import com.haulmont.cli.core.event.ErrorEvent
+import com.haulmont.cli.core.event.InitPluginEvent
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.instance
@@ -33,6 +34,8 @@ import java.util.*
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
 import java.util.logging.Logger
+
+private val log: Logger = Logger.getLogger(PluginLoader::class.java.name)
 
 private val applicationProperties by lazy {
     val properties = Properties()
@@ -82,6 +85,8 @@ val kodein = Kodein {
 }
 
 private val writer: PrintWriter by kodein.instance<PrintWriter>()
+private val context: CliContext by kodein.instance<CliContext>()
+private val messages = Messages(ShellCli::class.java)
 
 fun main(args: Array<String>) {
 
@@ -95,6 +100,11 @@ fun main(args: Array<String>) {
     val commandsRegistry = CommandsRegistry()
 
     PluginLoader().loadMainPlugin(commandsRegistry, mode)
+
+    if (mode == CliMode.SHELL) {
+        context.mainPlugin()?.welcome()
+        writer.println(messages["interactiveModeHint"])
+    }
 
     PluginLoader().loadPlugins(commandsRegistry, mode)
 
