@@ -11,3 +11,26 @@ The CLI Core makes it easy to create a command line application that already wor
 <h3>
 <img src="https://github.com/cuba-platform/cuba-cli/blob/master/img/cuba-cli-shell.gif" align="center">
 </h3>
+
+### CLI Core features 
+
+- User friendly command line interface.
+- Commands autocomplition.
+- Supports external plugins.
+
+### CLI Core application development
+
+Your application should have implementation for `MainCliPlugin` interface. And provide your plugin in `module-info.java`. 
+For example: 
+```asciidoc
+provides MainCliPlugin with YourPlugin;
+```
+To customize your application you can override `MainCliPlugin` methods:
+
+- `welcome()` - prints welcome message for interactive plugin mode
+- `prompt` - cli prompt for interactive mode
+- `priority` - main CLI plugin priority, plugin with highest priority will be used as main
+- `pluginsDir` - plugins folder path 
+
+
+For more details please check https://github.com/cuba-platform/cli-core-sample sample project.
