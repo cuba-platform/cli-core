@@ -17,6 +17,7 @@ The CLI Core makes it easy to create a command line application that already wor
 - User friendly command line interface.
 - Commands autocomplition.
 - Supports external plugins.
+- Command prompts DSL
 
 ### CLI Core application development
 
