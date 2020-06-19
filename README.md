@@ -20,7 +20,10 @@ The CLI Core makes it easy to create a command line application that already wor
 
 ### CLI Core application development
 
-Your application should have implementation for `MainCliPlugin` interface. And provide your plugin in `module-info.java`. 
+CLI lib coordinates `com.haulmont.cli.core:cli-core:1.0.0`
+
+Your application should have implementation for `MainCliPlugin` interface. And provide plugin implementation in `module-info.java`. 
+
 For example: 
 ```asciidoc
 provides MainCliPlugin with YourPlugin;
