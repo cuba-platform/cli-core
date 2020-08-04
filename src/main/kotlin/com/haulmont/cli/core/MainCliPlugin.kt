@@ -13,4 +13,7 @@ interface MainCliPlugin : CliPlugin {
 
     val pluginsDir: Path?
         get() = null
+
+    val systemPluginsDirs: List<Path>?
+        get() = null
 }

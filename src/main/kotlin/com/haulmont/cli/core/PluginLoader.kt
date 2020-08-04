@@ -39,15 +39,10 @@ class PluginLoader {
 
     private val bus: EventBus by kodein.instance<EventBus>()
 
-    fun systemPluginsPaths() = listOf(
-            Paths.get("").toAbsolutePath().resolve("plugins"),
-            Paths.get("").toAbsolutePath().parent.resolve("plugins")
-    )
-
     fun loadPlugins(commandsRegistry: CommandsRegistry, mode: CliMode) {
         log.log(Level.INFO, "Creating plugins module layer")
 
-        systemPluginsPaths().forEach {
+        context.mainPlugin()?.systemPluginsDirs?.forEach {
             loadPluginsRecursively(it, mode, true)
         }
 
